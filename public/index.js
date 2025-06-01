@@ -1,3 +1,5 @@
+import { handleDelete } from "./delete.js";
+
 let activeDiv = null;
 export const setDiv = (newDiv) => {
   if (newDiv != activeDiv) {
@@ -35,6 +37,7 @@ import { handleRegister } from "./register.js";
 document.addEventListener("DOMContentLoaded", () => {
   token = localStorage.getItem("token");
   message = document.getElementById("message");
+  handleDelete();
   handleLoginRegister();
   handleLogin();
   handleJobs();

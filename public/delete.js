@@ -1,134 +1,50 @@
-//delete button
-
-//need to add this in the index.js
-//import { handleDelete } from "./Delete.js";
-//add this in addEventListener
-//handleDelete();
-
-//add this in the jobs.js
-//import { handleDelete } from "./Delete.js";
-
-//You’ll call the jobs delete API, 
-//and in the URL you will include the ID of the entry to be deleted. 
-// Then display the job list page if the delete was successful.
-
-import { enableInput, inputEnabled, message, setDiv, token } from "./index.js";
+// Import the needed variables and functions from other files
+import { enableInput, inputEnabled, message, token } from "./index.js";
 import { showJobs } from "./jobs.js";
 
-let addEditDiv = null;
-let company = null;
-let position = null;
-let status = null;
-let addingJob = null;
-
-export const handleAddEdit = () => {
-  addEditDiv = document.getElementById("edit-job");
-  company = document.getElementById("company");
-  position = document.getElementById("position");
-  status = document.getElementById("status");
-  addingJob = document.getElementById("adding-job");
-  const editCancel = document.getElementById("edit-cancel");
-
-  addEditDiv.addEventListener("click", async (e) => {
-    if (inputEnabled && e.target.nodeName === "BUTTON") {
-      if (e.target === addingJob) {
-        enableInput(false);
-  
-        let method = "POST";
-        let url = "/api/v1/jobs";
-
-        if (addingJob.textContent === "update") {
-            method = "PATCH";
-            url = `/api/v1/jobs/${addEditDiv.dataset.id}`;
-          }
-
-        try {
-          const response = await fetch(url, {
-            method: method,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              company: company.value,
-              position: position.value,
-              status: status.value,
-            }),
-          });
-  
-          const data = await response.json();
-    if (response.status === 200 || response.status === 201) {
-      if (response.status === 200) {
-        // a 200 is expected for a successful update
-        message.textContent = "The job entry was updated.";
-      } else {
-        // a 201 is expected for a successful create
-        message.textContent = "The job entry was created.";
-      }
-            company.value = "";
-            position.value = "";
-            status.value = "pending";
-  
-            showJobs();
-          } else {
-            message.textContent = data.msg;
-          }
-        } catch (err) {
-          console.log(err);
-          message.textContent = "A communication error occurred.";
-        }
-  
-        enableInput(true);
-      } else if (e.target === editCancel) {
-        message.textContent = "";
-        showJobs();
-      }
+// This function sets up the delete button functionality
+export const handleDelete = () => {
+  // Listen for any clicks on the page
+  document.addEventListener("click", async (event) => {
+    // Only continue if input is enabled AND the clicked element has the class 'deleteButton'
+    if (!inputEnabled || !event.target.classList.contains("deleteButton")) {
+      return; // If not, stop here and do nothing
     }
+
+    // Disable inputs so the user can’t click anything else while we process
+    enableInput(false);
+
+    // Get the ID of the job we want to delete from the button's data-id attribute
+    const jobId = event.target.dataset.id;
+
+    try {
+      // Make a DELETE request to the API to delete the job
+      const response = await fetch(`/api/v1/jobs/${jobId}`, {
+        method: "DELETE", // Tell the server we want to delete something
+        headers: {
+          "Content-Type": "application/json", // We are sending JSON
+          Authorization: `Bearer ${token}`, // Add the user's token so the server knows who is deleting
+        },
+      });
+
+      // Convert the response to JSON
+      const data = await response.json();
+
+      // If the server says the delete was successful (status code 200)
+      if (response.status === 200) {
+        message.textContent = "Job entry was deleted."; // Show a success message
+        showJobs(); // Refresh the list of jobs on the page
+      } else {
+        // If the delete failed, show the error message from the server or a default one
+        message.textContent = data.msg || "Job entry not deleted";
+      }
+    } catch (error) {
+      // If something went wrong (like no internet), show a general error message
+      console.log(error);
+      message.textContent = "A communication error occurred.";
+    }
+
+    // Re-enable input so the user can interact with the page again
+    enableInput(true);
   });
 };
-
-export const showAddEdit = async (jobId) => {
-    if (!jobId) {
-      company.value = "";
-      position.value = "";
-      status.value = "pending";
-      addingJob.textContent = "add";
-      message.textContent = "";
-  
-      setDiv(addEditDiv);
-    } else {
-      enableInput(false);
-  
-      try {
-        const response = await fetch(`/api/v1/jobs/${jobId}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-  
-        const data = await response.json();
-        if (response.status === 200) {
-          company.value = data.job.company;
-          position.value = data.job.position;
-          status.value = data.job.status;
-          addingJob.textContent = "update";
-          message.textContent = "";
-          addEditDiv.dataset.id = jobId;
-  
-          setDiv(addEditDiv);
-        } else {
-          // might happen if the list has been updated since last display
-          message.textContent = "The jobs entry was not found";
-          showJobs();
-        }
-      } catch (err) {
-        console.log(err);
-        message.textContent = "A communications error has occurred.";
-        showJobs();
-      }
-  
-      enableInput(true);
-    }
-  };
